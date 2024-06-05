@@ -1,0 +1,5 @@
+binance:
+  apiKey:
+  apiSecret:
+  baseUrl:
+  websocketUrl:
