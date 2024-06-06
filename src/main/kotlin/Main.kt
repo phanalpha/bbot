@@ -8,9 +8,13 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
+import io.ktor.http.ParametersBuilder
+import io.ktor.http.formUrlEncode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
+import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
+import org.kotlincrypto.macs.hmac.sha2.HmacSHA256
 
 data class BinanceConfiguration(
     val apiKey: String,
@@ -18,6 +22,22 @@ data class BinanceConfiguration(
     val baseUrl: String,
     val websocketUrl: String,
 )
+
+fun ParametersBuilder.appendTimestamp() =
+    append(
+        "timestamp",
+        Clock.System
+            .now()
+            .toEpochMilliseconds()
+            .toString(),
+    )
+
+@OptIn(ExperimentalStdlibApi::class)
+fun ParametersBuilder.appendSignature(apiSecret: String) =
+    HmacSHA256(apiSecret.toByteArray()).let {
+        it.update(build().formUrlEncode().toByteArray())
+        append("signature", it.doFinal().toHexString())
+    }
 
 data class ApplicationConfiguration(
     val binance: BinanceConfiguration,
@@ -67,4 +87,5 @@ fun main(args: Array<String>) =
     Application()
         .subcommands(GetAccount())
         .subcommands(CollectTrades())
+        .subcommands(NewOrder())
         .main(args)

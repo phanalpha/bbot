@@ -28,6 +28,7 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-core:$hoplite_version")
     implementation("com.sksamuel.hoplite:hoplite-yaml:$hoplite_version")
     implementation("com.github.ajalt.clikt:clikt:$clikt_version")
+    implementation("io.viascom.nanoid:nanoid:1.0.1")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.1.0-alpha1")
 
