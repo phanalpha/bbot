@@ -90,4 +90,5 @@ fun main(args: Array<String>) =
         .subcommands(GetOrder())
         .subcommands(CancelOrder())
         .subcommands(CollectTrades())
+        .subcommands(NewUserDataStream())
         .main(args)
