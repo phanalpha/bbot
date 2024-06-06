@@ -11,4 +11,7 @@ data class Error(
 ) : AccountResponse,
     OrderResponseAck,
     OrderResponseResult,
-    OrderResponseFull
+    OrderResponseFull,
+    CancelOrderResponse,
+    OrderResponse,
+    OrderArrayResponse

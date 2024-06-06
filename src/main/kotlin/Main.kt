@@ -86,6 +86,8 @@ class Application : CliktCommand() {
 fun main(args: Array<String>) =
     Application()
         .subcommands(GetAccount())
-        .subcommands(CollectTrades())
         .subcommands(NewOrder())
+        .subcommands(GetOrder())
+        .subcommands(CancelOrder())
+        .subcommands(CollectTrades())
         .main(args)
