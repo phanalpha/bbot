@@ -6,21 +6,27 @@ import io.ktor.client.request.get
 import io.ktor.client.request.headers
 import io.ktor.http.path
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.jsonObject
 import java.math.BigDecimal
 
 @Serializable(with = AccountResponseSerializer::class)
 sealed interface AccountResponse
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class Balance(
+    @JsonNames("a")
     val asset: String,
     @Serializable(with = BigDecimalSerializer::class)
+    @JsonNames("f")
     val free: BigDecimal,
     @Serializable(with = BigDecimalSerializer::class)
+    @JsonNames("l")
     val locked: BigDecimal,
 )
 

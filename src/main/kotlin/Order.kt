@@ -44,3 +44,13 @@ enum class OrderResponseType {
     RESULT,
     FULL,
 }
+
+enum class ExecutionType {
+    NEW,
+    CANCELED,
+    REPLACED,
+    REJECTED,
+    TRADE,
+    EXPIRED,
+    TRADE_PREVENTION,
+}

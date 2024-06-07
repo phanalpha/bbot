@@ -16,8 +16,8 @@ import java.math.BigDecimal
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @JsonClassDiscriminator("e")
-sealed class Event {
-    abstract val timestamp: Instant
+sealed interface MarketEvent {
+    val timestamp: Instant
 }
 
 @Serializable
@@ -45,7 +45,7 @@ data class TradeEvent(
     val tradedAt: Instant,
     @SerialName("m")
     val isBuyerMaker: Boolean,
-) : Event()
+) : MarketEvent
 
 class CollectTrades : CliktCommand() {
     private val baseUrl by option()
@@ -58,7 +58,7 @@ class CollectTrades : CliktCommand() {
             application.client
                 .wss("${baseUrl ?: application.configuration.binance.websocketUrl}/ws/$symbol@trade") {
                     while (true) {
-                        println(receiveDeserialized<Event>())
+                        println(receiveDeserialized<MarketEvent>())
                     }
                 }
         }
