@@ -15,4 +15,5 @@ data class Error(
     CancelOrderResponse,
     OrderResponse,
     OrderArrayResponse,
-    NewUserDataStreamResponse
+    NewUserDataStreamResponse,
+    ExchangeInformationResponse

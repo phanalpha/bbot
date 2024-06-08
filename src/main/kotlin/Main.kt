@@ -46,6 +46,7 @@ data class ApplicationConfiguration(
 class Application : CliktCommand() {
     private lateinit var _configuration: ApplicationConfiguration
     private lateinit var _client: HttpClient
+    private lateinit var _cli: Client
 
     override fun run() {
         _configuration =
@@ -76,11 +77,14 @@ class Application : CliktCommand() {
                 }
             }
 
+        _cli = Client(_client, _configuration.binance)
+
         currentContext.obj = this
     }
 
     val configuration get() = _configuration
     val client get() = _client
+    val cli get() = _cli
 }
 
 fun main(args: Array<String>) =
@@ -92,4 +96,6 @@ fun main(args: Array<String>) =
         .subcommands(CollectTrades())
         .subcommands(NewUserDataStream())
         .subcommands(CollectUserData())
+        .subcommands(StartGrid())
+        .subcommands(GetExchangeInformation())
         .main(args)

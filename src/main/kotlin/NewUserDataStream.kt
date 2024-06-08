@@ -31,6 +31,45 @@ object NewUserDataStreamResponseSerializer : JsonContentPolymorphicSerializer<Ne
         }
 }
 
+suspend fun Client.newUserDataStream() =
+    client
+        .post(configuration.baseUrl) {
+            url {
+                path("/api/v3/userDataStream")
+            }
+            headers {
+                append("X-MBX-APIKEY", configuration.apiKey)
+            }
+        }.body<NewUserDataStreamResponse>()
+
+suspend fun Client.keepUserDataStream(listenKey: String) =
+    client
+        .put(configuration.baseUrl) {
+            url {
+                path("/api/v3/userDataStream")
+                parameters.apply {
+                    append("listenKey", listenKey)
+                }
+            }
+            headers {
+                append("X-MBX-APIKEY", configuration.apiKey)
+            }
+        }.body<Error>()
+
+suspend fun Client.closeUserDataStream(listenKey: String) =
+    client
+        .delete(configuration.baseUrl) {
+            url {
+                path("/api/v3/userDataStream")
+                parameters.apply {
+                    append("listenKey", listenKey)
+                }
+            }
+            headers {
+                append("X-MBX-APIKEY", configuration.apiKey)
+            }
+        }.body<Error>()
+
 class NewUserDataStream : CliktCommand() {
     private val listenKey by option()
     private val close by option().flag()
@@ -40,43 +79,16 @@ class NewUserDataStream : CliktCommand() {
             val application = currentContext.findObject<Application>()!!
 
             if (listenKey == null) {
-                application.client
-                    .post(application.configuration.binance.baseUrl) {
-                        url {
-                            path("/api/v3/userDataStream")
-                        }
-                        headers {
-                            append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                        }
-                    }.body<NewUserDataStreamResponse>()
+                application.cli
+                    .newUserDataStream()
                     .let(::println)
             } else if (!close) {
-                application.client
-                    .put(application.configuration.binance.baseUrl) {
-                        url {
-                            path("/api/v3/userDataStream")
-                            parameters.apply {
-                                append("listenKey", listenKey!!)
-                            }
-                        }
-                        headers {
-                            append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                        }
-                    }.body<Error>()
+                application.cli
+                    .keepUserDataStream(listenKey!!)
                     .let(::println)
             } else {
-                application.client
-                    .delete(application.configuration.binance.baseUrl) {
-                        url {
-                            path("/api/v3/userDataStream")
-                            parameters.apply {
-                                append("listenKey", listenKey!!)
-                            }
-                        }
-                        headers {
-                            append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                        }
-                    }.body<Error>()
+                application.cli
+                    .closeUserDataStream(listenKey!!)
                     .let(::println)
             }
         }

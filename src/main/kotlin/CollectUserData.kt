@@ -173,6 +173,18 @@ data class ListenKeyExpiredEvent(
     val listenKey: String,
 ) : UserDataEvent
 
+suspend fun Client.collectUserData(
+    listenKey: String,
+    initialBlock: suspend () -> Unit = {},
+    block: suspend (UserDataEvent) -> Unit,
+) = client
+    .wss("${configuration.websocketUrl}/ws/$listenKey") {
+        initialBlock()
+        while (true) {
+            block(receiveDeserialized<UserDataEvent>())
+        }
+    }
+
 class CollectUserData : CliktCommand() {
     private val listenKey by argument()
 
@@ -180,11 +192,6 @@ class CollectUserData : CliktCommand() {
         runBlocking {
             val application = currentContext.findObject<Application>()!!
 
-            application.client
-                .wss("${application.configuration.binance.websocketUrl}/ws/$listenKey") {
-                    while (true) {
-                        println(receiveDeserialized<UserDataEvent>())
-                    }
-                }
+            application.cli.collectUserData(listenKey, { println("ready") }, ::println)
         }
 }

@@ -7,6 +7,7 @@ import com.github.ajalt.clikt.parameters.types.long
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.headers
+import io.ktor.http.headers
 import io.ktor.http.path
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
@@ -57,6 +58,28 @@ object CancelOrderResponseSerializer : JsonContentPolymorphicSerializer<CancelOr
         }
 }
 
+suspend fun Client.cancelOrder(
+    symbol: String,
+    orderId: Long? = null,
+    clientOrderId: String? = null,
+) = client
+    .delete(configuration.baseUrl) {
+        url {
+            path("/api/v3/order")
+            parameters.apply {
+                append("symbol", symbol)
+                orderId?.let { append("orderId", it.toString()) }
+                clientOrderId?.let { append("origClientOrderId", it) }
+
+                appendTimestamp()
+                appendSignature(configuration.apiSecret)
+            }
+        }
+        headers {
+            append("X-MBX-APIKEY", configuration.apiKey)
+        }
+    }.body<CancelOrderResponse>()
+
 class CancelOrder : CliktCommand() {
     private val symbol by argument()
     private val orderId by option().long()
@@ -64,25 +87,8 @@ class CancelOrder : CliktCommand() {
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
+            val cli = currentContext.findObject<Application>()?.cli!!
 
-            application.client
-                .delete(application.configuration.binance.baseUrl) {
-                    url {
-                        path("/api/v3/order")
-                        parameters.apply {
-                            append("symbol", symbol)
-                            orderId?.let { append("orderId", it.toString()) }
-                            clientOrderId?.let { append("origClientOrderId", it) }
-
-                            appendTimestamp()
-                            appendSignature(application.configuration.binance.apiSecret)
-                        }
-                    }
-                    headers {
-                        append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                    }
-                }.body<CancelOrderResponse>()
-                .let(::println)
+            cli.cancelOrder(symbol, orderId, clientOrderId).let(::println)
         }
 }

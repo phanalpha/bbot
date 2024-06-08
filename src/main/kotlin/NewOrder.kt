@@ -74,7 +74,8 @@ data class OrderResult(
     val selfTradePreventionMode: SelfTradePreventionMode,
 ) : OrderResponseResult
 
-object OrderResponseResultSerializer : JsonContentPolymorphicSerializer<OrderResponseResult>(OrderResponseResult::class) {
+object OrderResponseResultSerializer :
+    JsonContentPolymorphicSerializer<OrderResponseResult>(OrderResponseResult::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -136,6 +137,52 @@ object OrderResponseFullSerializer : JsonContentPolymorphicSerializer<OrderRespo
         }
 }
 
+suspend inline fun <reified T> Client.newOrder(
+    symbol: String,
+    side: OrderSide,
+    quantity: BigDecimal,
+    price: BigDecimal? = null,
+    clientOrderId: String? = null,
+) = client
+    .post(configuration.baseUrl) {
+        url {
+            path("/api/v3/order")
+        }
+        headers {
+            append("X-MBX-APIKEY", configuration.apiKey)
+        }
+
+        setBody(
+            FormDataContent(
+                parameters {
+                    append("symbol", symbol)
+                    append("side", side.name)
+                    if (price == null) {
+                        append("type", OrderType.MARKET.name)
+                    } else {
+                        append("type", OrderType.LIMIT.name)
+                        append("price", price.toPlainString())
+                        append("timeInForce", TimeInForce.GTC.name)
+                    }
+                    append("quantity", quantity.toPlainString())
+                    append("newClientOrderId", clientOrderId ?: NanoId.generate())
+                    append(
+                        "newOrderRespType",
+                        when (T::class) {
+                            OrderResponseAck::class -> OrderResponseType.ACK
+                            OrderResponseResult::class -> OrderResponseType.RESULT
+                            OrderResponseFull::class -> OrderResponseType.FULL
+                            else -> error("Unsupported type: ${T::class}")
+                        }.name,
+                    )
+
+                    appendTimestamp()
+                    appendSignature(configuration.apiSecret)
+                },
+            ),
+        )
+    }.body<T>()
+
 class NewOrder : CliktCommand() {
     private val symbol by argument()
     private val quantity by argument().convert { it.toBigDecimal() }
@@ -147,43 +194,22 @@ class NewOrder : CliktCommand() {
     override fun run() =
         runBlocking {
             val application = currentContext.findObject<Application>()!!
+            val side = if (buy) OrderSide.BUY else OrderSide.SELL
+            when (rt) {
+                OrderResponseType.ACK ->
+                    application.cli
+                        .newOrder<OrderResponseAck>(symbol, side, quantity, price, clientOrderId)
+                        .let(::println)
 
-            application.client
-                .post(application.configuration.binance.baseUrl) {
-                    url {
-                        path("/api/v3/order")
-                    }
-                    headers {
-                        append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                    }
+                OrderResponseType.RESULT ->
+                    application.cli
+                        .newOrder<OrderResponseResult>(symbol, side, quantity, price, clientOrderId)
+                        .let(::println)
 
-                    setBody(
-                        FormDataContent(
-                            parameters {
-                                append("symbol", symbol)
-                                append("side", (if (buy) OrderSide.BUY else OrderSide.SELL).name)
-                                if (price == null) {
-                                    append("type", OrderType.MARKET.name)
-                                } else {
-                                    append("type", OrderType.LIMIT.name)
-                                    append("price", price!!.toPlainString())
-                                    append("timeInForce", TimeInForce.GTC.name)
-                                }
-                                append("quantity", quantity.toPlainString())
-                                append("newClientOrderId", clientOrderId ?: NanoId.generate())
-                                append("newOrderRespType", rt.name)
-
-                                appendTimestamp()
-                                appendSignature(application.configuration.binance.apiSecret)
-                            },
-                        ),
-                    )
-                }.let {
-                    when (rt) {
-                        OrderResponseType.ACK -> it.body<OrderResponseAck>()
-                        OrderResponseType.RESULT -> it.body<OrderResponseResult>()
-                        OrderResponseType.FULL -> it.body<OrderResponseFull>()
-                    }
-                }.let(::println)
+                OrderResponseType.FULL ->
+                    application.cli
+                        .newOrder<OrderResponseFull>(symbol, side, quantity, price, clientOrderId)
+                        .let(::println)
+            }
         }
 }
