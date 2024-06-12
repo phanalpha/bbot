@@ -97,5 +97,6 @@ fun main(args: Array<String>) =
         .subcommands(NewUserDataStream())
         .subcommands(CollectUserData())
         .subcommands(StartGrid())
+        .subcommands(GetTrades())
         .subcommands(GetExchangeInformation())
         .main(args)

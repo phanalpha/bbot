@@ -77,15 +77,15 @@ object OrderResponseSerializer : JsonContentPolymorphicSerializer<OrderResponse>
         }
 }
 
-@Serializable(with = OrdersResponseSerializer::class)
+@Serializable(with = OrderArrayResponseSerializer::class)
 sealed interface OrderArrayResponse
 
-@Serializable(with = OrdersSerializer::class)
+@Serializable(with = OrderArraySerializer::class)
 data class OrderArray(
     val orders: List<Order>,
 ) : OrderArrayResponse
 
-class OrdersSerializer : KSerializer<OrderArray> {
+class OrderArraySerializer : KSerializer<OrderArray> {
     private val delegateSerializer = serializer<List<Order>>()
 
     @OptIn(ExperimentalSerializationApi::class)
@@ -99,7 +99,7 @@ class OrdersSerializer : KSerializer<OrderArray> {
     override fun deserialize(decoder: Decoder) = OrderArray(decoder.decodeSerializableValue(delegateSerializer))
 }
 
-object OrdersResponseSerializer : JsonContentPolymorphicSerializer<OrderArrayResponse>(OrderArrayResponse::class) {
+object OrderArrayResponseSerializer : JsonContentPolymorphicSerializer<OrderArrayResponse>(OrderArrayResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             element is JsonObject -> Error.serializer()

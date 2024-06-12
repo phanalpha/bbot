@@ -141,6 +141,7 @@ suspend inline fun <reified T> Client.newOrder(
     symbol: String,
     side: OrderSide,
     quantity: BigDecimal,
+    quote: Boolean = false,
     price: BigDecimal? = null,
     clientOrderId: String? = null,
 ) = client
@@ -159,12 +160,17 @@ suspend inline fun <reified T> Client.newOrder(
                     append("side", side.name)
                     if (price == null) {
                         append("type", OrderType.MARKET.name)
+                        if (!quote) {
+                            append("quantity", quantity.toPlainString())
+                        } else {
+                            append("quoteOrderQty", quantity.toPlainString())
+                        }
                     } else {
                         append("type", OrderType.LIMIT.name)
+                        append("quantity", quantity.toPlainString())
                         append("price", price.toPlainString())
                         append("timeInForce", TimeInForce.GTC.name)
                     }
-                    append("quantity", quantity.toPlainString())
                     append("newClientOrderId", clientOrderId ?: NanoId.generate())
                     append(
                         "newOrderRespType",
@@ -186,6 +192,7 @@ suspend inline fun <reified T> Client.newOrder(
 class NewOrder : CliktCommand() {
     private val symbol by argument()
     private val quantity by argument().convert { it.toBigDecimal() }
+    private val quote by option().flag()
     private val clientOrderId by option()
     private val price by option().convert { it.toBigDecimal() }
     private val buy by option().flag()
@@ -198,17 +205,17 @@ class NewOrder : CliktCommand() {
             when (rt) {
                 OrderResponseType.ACK ->
                     application.cli
-                        .newOrder<OrderResponseAck>(symbol, side, quantity, price, clientOrderId)
+                        .newOrder<OrderResponseAck>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.RESULT ->
                     application.cli
-                        .newOrder<OrderResponseResult>(symbol, side, quantity, price, clientOrderId)
+                        .newOrder<OrderResponseResult>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.FULL ->
                     application.cli
-                        .newOrder<OrderResponseFull>(symbol, side, quantity, price, clientOrderId)
+                        .newOrder<OrderResponseFull>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
             }
         }

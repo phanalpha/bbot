@@ -7,7 +7,6 @@ import com.github.ajalt.clikt.parameters.types.long
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.headers
-import io.ktor.http.headers
 import io.ktor.http.path
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant

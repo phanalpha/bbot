@@ -76,7 +76,6 @@ data class MinNotionalFilter(
     @Serializable(with = BigDecimalSerializer::class)
     val minNotional: BigDecimal,
     val applyToMarket: Boolean,
-    @Serializable(with = BigDecimalSerializer::class)
     val avgPriceMins: Int,
 ) : SymbolFilter
 

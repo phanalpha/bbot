@@ -36,10 +36,12 @@ data class TradeEvent(
     @Serializable(with = BigDecimalSerializer::class)
     @SerialName("q")
     val quantity: BigDecimal,
-    @SerialName("b")
-    val buyerOrderId: Long? = null,
-    @SerialName("a")
-    val sellerOrderId: Long? = null,
+    /*
+     * 2024-06-05
+     * WebSocket Streams
+     * Buyer order ID (b) and Seller order ID (a) have been removed from the Trade streams. (i.e. <symbol>@trade)
+     * To monitor if your order was part of a trade, please listen to the User Data Streams.
+     */
     @Serializable(with = InstantEpochMillisecondsSerializer::class)
     @SerialName("T")
     val tradedAt: Instant,

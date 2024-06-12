@@ -11,23 +11,19 @@ import kotlin.time.Duration.Companion.minutes
 
 class GridOrder(
     val side: OrderSide,
-    val quantity: BigDecimal,
 ) {
     private var _amount: BigDecimal = BigDecimal.ZERO
+    private var _quantity: BigDecimal = BigDecimal.ZERO
 
     val amount get() = _amount
-    val price get() = _amount / quantity
+    val quantity get() = _quantity
+    val price get() = _amount / _quantity
 
     fun fill(x: ExecutionReportEvent): GridOrder {
         _amount += x.lastQuoteQuantity
+        _quantity += x.lastExecutedQuantity
 
         return this
-    }
-
-    companion object {
-        fun buy(quantity: BigDecimal) = GridOrder(OrderSide.BUY, quantity)
-
-        fun sell(quantity: BigDecimal) = GridOrder(OrderSide.SELL, quantity)
     }
 }
 
@@ -57,10 +53,9 @@ class StartGrid : CliktCommand() {
 
             try {
                 cli.collectUserData(listenKey, {
-                    val q = si.filterQuantity(initial)
-                    cli.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, q).let {
+                    cli.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
                         println(it)
-                        openOrders[(it as OrderAck).orderId] = GridOrder.buy(q)
+                        openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
                     }
                 }) { event ->
                     println(event)
@@ -102,10 +97,10 @@ class StartGrid : CliktCommand() {
                 check(openOrders.count { it.value.side == OrderSide.SELL } > 0)
 
                 cli
-                    .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, p)
+                    .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, price = p)
                     .let {
                         println(it)
-                        openOrders[(it as OrderAck).orderId] = GridOrder.buy(order.quantity)
+                        openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
                     }
             }
 
@@ -114,19 +109,23 @@ class StartGrid : CliktCommand() {
                 println("$received / $spent (+${order.amount})")
 
                 cli
-                    .newOrder<OrderResponseAck>(symbol, OrderSide.SELL, order.quantity, si.filterPrice(order.price + d))
-                    .let {
+                    .newOrder<OrderResponseAck>(
+                        symbol,
+                        OrderSide.SELL,
+                        order.quantity,
+                        price = si.filterPrice(order.price + d),
+                    ).let {
                         println(it)
-                        openOrders[(it as OrderAck).orderId] = GridOrder.sell(order.quantity)
+                        openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.SELL)
                     }
 
                 val q = si.filterQuantity(order.quantity * multiplier)
                 if (spent + p * q - received < budget) {
                     cli
-                        .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, q, p)
+                        .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, q, price = p)
                         .let {
                             println(it)
-                            openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY, q)
+                            openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
                         }
                 }
             }
