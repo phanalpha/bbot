@@ -15,6 +15,7 @@ class MainCommand : CliktCommand(name = "future") {
         subcommands(
             GetExchangeInformation(),
             GetAccount(),
+            NewUserDataStream(),
         )
     }
 

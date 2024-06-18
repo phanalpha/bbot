@@ -15,5 +15,4 @@ data class Error(
     OrderResponse,
     OrderArrayResponse,
     CancelOrderResponse,
-    TradeArrayResponse,
-    NewUserDataStreamResponse
+    TradeArrayResponse

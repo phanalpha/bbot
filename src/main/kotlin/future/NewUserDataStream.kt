@@ -1,4 +1,4 @@
-package dev.alonfalsing.spot
+package dev.alonfalsing.future
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.flag
@@ -18,7 +18,7 @@ suspend fun Client.newUserDataStream() =
     client
         .post(configuration.baseUrl) {
             url {
-                path("/api/v3/userDataStream")
+                path("/fapi/v1/listenKey")
             }
             headers {
                 append("X-MBX-APIKEY", configuration.apiKey)
@@ -29,7 +29,7 @@ suspend fun Client.keepUserDataStream(listenKey: String) =
     client
         .put(configuration.baseUrl) {
             url {
-                path("/api/v3/userDataStream")
+                path("/fapi/v1/listenKey")
                 parameters.apply {
                     append("listenKey", listenKey)
                 }
@@ -43,7 +43,7 @@ suspend fun Client.closeUserDataStream(listenKey: String) =
     client
         .delete(configuration.baseUrl) {
             url {
-                path("/api/v3/userDataStream")
+                path("/fapi/v1/listenKey")
                 parameters.apply {
                     append("listenKey", listenKey)
                 }

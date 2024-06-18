@@ -8,4 +8,5 @@ data class Error(
     val code: Int = 0,
     @SerialName("msg")
     val message: String = "",
-) : ExchangeInformationResponse
+) : ExchangeInformationResponse,
+    NewUserDataStreamResponse
