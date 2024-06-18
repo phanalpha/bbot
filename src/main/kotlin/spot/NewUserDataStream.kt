@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.flag
@@ -14,6 +14,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 
 @Serializable(with = NewUserDataStreamResponseSerializer::class)
 interface NewUserDataStreamResponse
@@ -23,7 +25,8 @@ data class UserDataStream(
     val listenKey: String,
 ) : NewUserDataStreamResponse
 
-object NewUserDataStreamResponseSerializer : JsonContentPolymorphicSerializer<NewUserDataStreamResponse>(NewUserDataStreamResponse::class) {
+object NewUserDataStreamResponseSerializer :
+    JsonContentPolymorphicSerializer<NewUserDataStreamResponse>(NewUserDataStreamResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -31,7 +34,7 @@ object NewUserDataStreamResponseSerializer : JsonContentPolymorphicSerializer<Ne
         }
 }
 
-suspend fun SpotClient.newUserDataStream() =
+suspend fun Client.newUserDataStream() =
     client
         .post(configuration.baseUrl) {
             url {
@@ -42,7 +45,7 @@ suspend fun SpotClient.newUserDataStream() =
             }
         }.body<NewUserDataStreamResponse>()
 
-suspend fun SpotClient.keepUserDataStream(listenKey: String) =
+suspend fun Client.keepUserDataStream(listenKey: String) =
     client
         .put(configuration.baseUrl) {
             url {
@@ -56,7 +59,7 @@ suspend fun SpotClient.keepUserDataStream(listenKey: String) =
             }
         }.body<Error>()
 
-suspend fun SpotClient.closeUserDataStream(listenKey: String) =
+suspend fun Client.closeUserDataStream(listenKey: String) =
     client
         .delete(configuration.baseUrl) {
             url {
@@ -70,26 +73,24 @@ suspend fun SpotClient.closeUserDataStream(listenKey: String) =
             }
         }.body<Error>()
 
-class NewUserDataStream : CliktCommand() {
+class NewUserDataStream :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val listenKey by option()
     private val close by option().flag()
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
+            when {
+                listenKey == null ->
+                    client.newUserDataStream().let(::println)
 
-            if (listenKey == null) {
-                application.cli
-                    .newUserDataStream()
-                    .let(::println)
-            } else if (!close) {
-                application.cli
-                    .keepUserDataStream(listenKey!!)
-                    .let(::println)
-            } else {
-                application.cli
-                    .closeUserDataStream(listenKey!!)
-                    .let(::println)
+                !close ->
+                    client.keepUserDataStream(listenKey!!).let(::println)
+
+                else ->
+                    client.closeUserDataStream(listenKey!!).let(::println)
             }
         }
 }

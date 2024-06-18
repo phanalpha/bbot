@@ -1,7 +1,9 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.wss
 import kotlinx.coroutines.runBlocking
@@ -10,6 +12,8 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -174,7 +178,7 @@ data class ListenKeyExpiredEvent(
     val listenKey: String,
 ) : UserDataEvent
 
-suspend fun SpotClient.collectUserData(
+suspend fun Client.collectUserData(
     listenKey: String,
     initialBlock: suspend () -> Unit = {},
     block: suspend (UserDataEvent) -> Unit,
@@ -186,13 +190,14 @@ suspend fun SpotClient.collectUserData(
         }
     }
 
-class CollectUserData : CliktCommand() {
+class CollectUserData :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val listenKey by argument()
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
-
-            application.cli.collectUserData(listenKey, { println("ready") }, ::println)
+            client.collectUserData(listenKey, { println("ready") }, ::println)
         }
 }

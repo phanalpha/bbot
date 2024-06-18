@@ -1,6 +1,7 @@
 val ktor_version: String by project
 val hoplite_version: String by project
 val clikt_version: String by project
+val koin_version: String by project
 
 plugins {
     kotlin("jvm") version "2.0.0"
@@ -29,6 +30,8 @@ dependencies {
     implementation("com.sksamuel.hoplite:hoplite-yaml:$hoplite_version")
     implementation("com.github.ajalt.clikt:clikt:$clikt_version")
     implementation("io.viascom.nanoid:nanoid:1.0.1")
+    implementation(platform("io.insert-koin:koin-bom:$koin_version"))
+    implementation("io.insert-koin:koin-core")
 
     runtimeOnly("org.slf4j:slf4j-simple:2.1.0-alpha1")
 

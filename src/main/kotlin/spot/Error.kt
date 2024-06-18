@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable

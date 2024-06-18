@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -9,6 +9,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.datetime.Instant
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 import kotlin.time.Duration.Companion.minutes
 
@@ -38,7 +40,10 @@ data class BeginMessage(
     override val timestamp: Instant,
 ) : GridMessage
 
-class StartGrid : CliktCommand() {
+class StartGrid :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
     private val initial by argument().convert { it.toBigDecimal() }
     private val dropRatio by argument().convert { it.toBigDecimal() }
@@ -52,20 +57,19 @@ class StartGrid : CliktCommand() {
     override fun run() =
         runBlocking {
             val ch = Channel<GridMessage>()
-            val cli = currentContext.findObject<Application>()?.cli!!
-            val si = cli.getExchangeInformation(symbol) as Symbol
-            val (listenKey) = cli.newUserDataStream() as UserDataStream
+            val si = client.getExchangeInformation(symbol) as Symbol
+            val (listenKey) = client.newUserDataStream() as UserDataStream
 
             val stream =
                 launch {
                     launch {
                         while (true) {
                             delay(30.minutes)
-                            cli.keepUserDataStream(listenKey)
+                            client.keepUserDataStream(listenKey)
                         }
                     }
 
-                    cli.collectUserData(listenKey, {
+                    client.collectUserData(listenKey, {
                         ch.send(BeginMessage(Clock.System.now()))
                     }) {
                         println(it)
@@ -79,7 +83,7 @@ class StartGrid : CliktCommand() {
             while (true) {
                 when (val event = ch.receive()) {
                     is BeginMessage -> {
-                        cli.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
+                        client.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
                             println(it)
                             openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
                         }
@@ -97,7 +101,7 @@ class StartGrid : CliktCommand() {
                                     openOrders[event.orderId]?.fill(event)
 
                                 OrderStatus.FILLED -> {
-                                    fill(openOrders.remove(event.orderId)?.fill(event)!!, cli, si)
+                                    fill(openOrders.remove(event.orderId)?.fill(event)!!, si)
                                     if (openOrders.all { it.value.side != OrderSide.SELL }) break
                                 }
 
@@ -109,13 +113,12 @@ class StartGrid : CliktCommand() {
 
             stream.cancel()
             for (orderId in openOrders.keys) {
-                cli.cancelOrder(symbol, orderId).let(::println)
+                client.cancelOrder(symbol, orderId).let(::println)
             }
         }
 
     private suspend fun fill(
         order: GridOrder,
-        cli: SpotClient,
         si: Symbol,
     ) {
         val d = order.price * dropRatio
@@ -127,7 +130,7 @@ class StartGrid : CliktCommand() {
                 println("$received (+${order.amount}) / $spent")
 
                 if (openOrders.any { it.value.side == OrderSide.SELL }) {
-                    cli
+                    client
                         .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, price = p)
                         .let {
                             println(it)
@@ -140,7 +143,7 @@ class StartGrid : CliktCommand() {
                 spent += order.amount
                 println("$received / $spent (+${order.amount})")
 
-                cli
+                client
                     .newOrder<OrderResponseAck>(
                         symbol,
                         OrderSide.SELL,
@@ -153,7 +156,7 @@ class StartGrid : CliktCommand() {
 
                 val q = si.filterQuantity(order.quantity * multiplier)
                 if (spent + p * q - received < budget) {
-                    cli
+                    client
                         .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, q, price = p)
                         .let {
                             println(it)

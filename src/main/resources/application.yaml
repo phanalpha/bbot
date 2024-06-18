@@ -1,5 +1,11 @@
 binance:
-  apiKey:
-  apiSecret:
-  baseUrl:
-  websocketUrl:
+  spot:
+    apiKey:
+    apiSecret:
+    baseUrl:
+    websocketUrl:
+  future:
+    apiKey:
+    apiSecret:
+    baseUrl:
+    websocketUrl:

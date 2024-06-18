@@ -1,6 +1,11 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.optional
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.common.appendSignature
+import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -12,6 +17,8 @@ import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = AccountResponseSerializer::class)
@@ -36,7 +43,8 @@ data class Account(
     val balances: List<Balance>,
 ) : AccountResponse
 
-object AccountResponseSerializer : JsonContentPolymorphicSerializer<AccountResponse>(AccountResponse::class) {
+object AccountResponseSerializer :
+    JsonContentPolymorphicSerializer<AccountResponse>(AccountResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -44,7 +52,7 @@ object AccountResponseSerializer : JsonContentPolymorphicSerializer<AccountRespo
         }
 }
 
-suspend fun SpotClient.getAccount() =
+suspend fun Client.getAccount() =
     client
         .get(configuration.baseUrl) {
             url {
@@ -53,7 +61,7 @@ suspend fun SpotClient.getAccount() =
                     append("omitZeroBalances", "true")
 
                     appendTimestamp()
-                    appendSignature(configuration.apiSecret)
+                    appendSignature(configuration)
                 }
             }
             headers {
@@ -61,11 +69,22 @@ suspend fun SpotClient.getAccount() =
             }
         }.body<AccountResponse>()
 
-class GetAccount : CliktCommand() {
+class GetAccount :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
+    private val symbol by argument().optional()
+
     override fun run() =
         runBlocking {
-            val cli = currentContext.findObject<Application>()!!.cli
-
-            cli.getAccount().let(::println)
+            client
+                .getAccount()
+                .let {
+                    if (it is Account && symbol != null) {
+                        it.balances.find { balance -> balance.asset == symbol }
+                    } else {
+                        it
+                    }
+                }.let(::println)
         }
 }

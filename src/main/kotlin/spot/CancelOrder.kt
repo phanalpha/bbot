@@ -1,9 +1,13 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.appendSignature
+import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.headers
@@ -15,6 +19,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = CancelOrderResponseSerializer::class)
@@ -49,7 +55,8 @@ data class CancelOrderResult(
     val selfTradePreventionMode: SelfTradePreventionMode,
 ) : CancelOrderResponse
 
-object CancelOrderResponseSerializer : JsonContentPolymorphicSerializer<CancelOrderResponse>(CancelOrderResponse::class) {
+object CancelOrderResponseSerializer :
+    JsonContentPolymorphicSerializer<CancelOrderResponse>(CancelOrderResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -57,7 +64,7 @@ object CancelOrderResponseSerializer : JsonContentPolymorphicSerializer<CancelOr
         }
 }
 
-suspend fun SpotClient.cancelOrder(
+suspend fun Client.cancelOrder(
     symbol: String,
     orderId: Long? = null,
     clientOrderId: String? = null,
@@ -71,7 +78,7 @@ suspend fun SpotClient.cancelOrder(
                 clientOrderId?.let { append("origClientOrderId", it) }
 
                 appendTimestamp()
-                appendSignature(configuration.apiSecret)
+                appendSignature(configuration)
             }
         }
         headers {
@@ -79,15 +86,16 @@ suspend fun SpotClient.cancelOrder(
         }
     }.body<CancelOrderResponse>()
 
-class CancelOrder : CliktCommand() {
+class CancelOrder :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
     private val orderId by option().long()
     private val clientOrderId by option()
 
     override fun run() =
         runBlocking {
-            val cli = currentContext.findObject<Application>()?.cli!!
-
-            cli.cancelOrder(symbol, orderId, clientOrderId).let(::println)
+            client.cancelOrder(symbol, orderId, clientOrderId).let(::println)
         }
 }

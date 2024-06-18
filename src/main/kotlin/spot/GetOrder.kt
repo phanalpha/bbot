@@ -1,9 +1,13 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.appendSignature
+import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -22,6 +26,8 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = OrderResponseSerializer::class)
@@ -69,7 +75,8 @@ data class Order(
     val selfTradePreventionMode: SelfTradePreventionMode,
 ) : OrderResponse
 
-object OrderResponseSerializer : JsonContentPolymorphicSerializer<OrderResponse>(OrderResponse::class) {
+object OrderResponseSerializer :
+    JsonContentPolymorphicSerializer<OrderResponse>(OrderResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -99,7 +106,8 @@ class OrderArraySerializer : KSerializer<OrderArray> {
     override fun deserialize(decoder: Decoder) = OrderArray(decoder.decodeSerializableValue(delegateSerializer))
 }
 
-object OrderArrayResponseSerializer : JsonContentPolymorphicSerializer<OrderArrayResponse>(OrderArrayResponse::class) {
+object OrderArrayResponseSerializer :
+    JsonContentPolymorphicSerializer<OrderArrayResponse>(OrderArrayResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             element is JsonObject -> Error.serializer()
@@ -107,7 +115,7 @@ object OrderArrayResponseSerializer : JsonContentPolymorphicSerializer<OrderArra
         }
 }
 
-suspend fun SpotClient.getOrder(
+suspend fun Client.getOrder(
     symbol: String,
     orderId: Long?,
     clientOrderId: String?,
@@ -121,7 +129,7 @@ suspend fun SpotClient.getOrder(
                 clientOrderId?.let { append("origClientOrderId", it) }
 
                 appendTimestamp()
-                appendSignature(configuration.apiSecret)
+                appendSignature(configuration)
             }
         }
         headers {
@@ -129,7 +137,7 @@ suspend fun SpotClient.getOrder(
         }
     }.body<OrderResponse>()
 
-suspend fun SpotClient.getOrders(symbol: String) =
+suspend fun Client.getOrders(symbol: String) =
     client
         .get(configuration.baseUrl) {
             url {
@@ -138,7 +146,7 @@ suspend fun SpotClient.getOrders(symbol: String) =
                     append("symbol", symbol)
 
                     appendTimestamp()
-                    appendSignature(configuration.apiSecret)
+                    appendSignature(configuration)
                 }
             }
             headers {
@@ -146,21 +154,22 @@ suspend fun SpotClient.getOrders(symbol: String) =
             }
         }.body<OrderArrayResponse>()
 
-class GetOrder : CliktCommand() {
+class GetOrder :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
     private val orderId by option().long()
     private val clientOrderId by option()
 
     override fun run() =
         runBlocking {
-            val cli = currentContext.findObject<Application>()?.cli!!
-
             when {
                 orderId != null || clientOrderId != null ->
-                    cli.getOrder(symbol, orderId, clientOrderId).let(::println)
+                    client.getOrder(symbol, orderId, clientOrderId).let(::println)
 
                 else ->
-                    cli.getOrders(symbol).let(::println)
+                    client.getOrders(symbol).let(::println)
             }
         }
 }

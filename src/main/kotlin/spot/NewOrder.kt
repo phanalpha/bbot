@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -7,6 +7,10 @@ import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.appendSignature
+import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.headers
@@ -22,6 +26,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = OrderResponseAckSerializer::class)
@@ -37,7 +43,8 @@ data class OrderAck(
     val transactTime: Instant,
 ) : OrderResponseAck
 
-object OrderResponseAckSerializer : JsonContentPolymorphicSerializer<OrderResponseAck>(OrderResponseAck::class) {
+object OrderResponseAckSerializer :
+    JsonContentPolymorphicSerializer<OrderResponseAck>(OrderResponseAck::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -129,7 +136,8 @@ data class OrderFull(
     val fills: List<Fill>,
 ) : OrderResponseFull
 
-object OrderResponseFullSerializer : JsonContentPolymorphicSerializer<OrderResponseFull>(OrderResponseFull::class) {
+object OrderResponseFullSerializer :
+    JsonContentPolymorphicSerializer<OrderResponseFull>(OrderResponseFull::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -137,7 +145,7 @@ object OrderResponseFullSerializer : JsonContentPolymorphicSerializer<OrderRespo
         }
 }
 
-suspend inline fun <reified T> SpotClient.newOrder(
+suspend inline fun <reified T> Client.newOrder(
     symbol: String,
     side: OrderSide,
     quantity: BigDecimal,
@@ -183,13 +191,16 @@ suspend inline fun <reified T> SpotClient.newOrder(
                     )
 
                     appendTimestamp()
-                    appendSignature(configuration.apiSecret)
+                    appendSignature(configuration)
                 },
             ),
         )
     }.body<T>()
 
-class NewOrder : CliktCommand() {
+class NewOrder :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
     private val quantity by argument().convert { it.toBigDecimal() }
     private val quote by option().flag()
@@ -200,21 +211,21 @@ class NewOrder : CliktCommand() {
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
             val side = if (buy) OrderSide.BUY else OrderSide.SELL
+
             when (rt) {
                 OrderResponseType.ACK ->
-                    application.cli
+                    client
                         .newOrder<OrderResponseAck>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.RESULT ->
-                    application.cli
+                    client
                         .newOrder<OrderResponseResult>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.FULL ->
-                    application.cli
+                    client
                         .newOrder<OrderResponseFull>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
             }

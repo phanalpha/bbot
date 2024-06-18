@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 enum class OrderType {
     LIMIT,

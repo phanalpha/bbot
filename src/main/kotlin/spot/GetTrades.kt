@@ -1,10 +1,14 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.appendSignature
+import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.client.request.headers
@@ -22,6 +26,8 @@ import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.serializer
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = TradeArrayResponseSerializer::class)
@@ -71,7 +77,8 @@ class TradeArraySerializer : KSerializer<TradeArray> {
     override fun deserialize(decoder: Decoder) = TradeArray(decoder.decodeSerializableValue(delegateSerializer))
 }
 
-object TradeArrayResponseSerializer : JsonContentPolymorphicSerializer<TradeArrayResponse>(TradeArrayResponse::class) {
+object TradeArrayResponseSerializer :
+    JsonContentPolymorphicSerializer<TradeArrayResponse>(TradeArrayResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             element is JsonObject -> Error.serializer()
@@ -79,7 +86,7 @@ object TradeArrayResponseSerializer : JsonContentPolymorphicSerializer<TradeArra
         }
 }
 
-suspend fun SpotClient.getTrades(
+suspend fun Client.getTrades(
     symbol: String,
     orderId: Long? = null,
     fromId: Long? = null,
@@ -95,7 +102,7 @@ suspend fun SpotClient.getTrades(
                 limit?.let { append("limit", it.toString()) }
 
                 appendTimestamp()
-                appendSignature(configuration.apiSecret)
+                appendSignature(configuration)
             }
         }
         headers {
@@ -103,7 +110,10 @@ suspend fun SpotClient.getTrades(
         }
     }.body<TradeArrayResponse>()
 
-class GetTrades : CliktCommand() {
+class GetTrades :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
     private val orderId by option().long()
     private val fromId by option().long()
@@ -111,10 +121,6 @@ class GetTrades : CliktCommand() {
 
     override fun run() =
         runBlocking {
-            val cli = currentContext.findObject<Application>()?.cli!!
-
-            cli
-                .getTrades(symbol, orderId, fromId, limit)
-                .let(::println)
+            client.getTrades(symbol, orderId, fromId, limit).let(::println)
         }
 }

@@ -1,7 +1,9 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
 import io.ktor.client.call.body
 import io.ktor.client.request.get
 import io.ktor.http.path
@@ -14,6 +16,8 @@ import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = ExchangeInformationSerializer::class)
@@ -184,7 +188,8 @@ data class ExchangeInformation(
     val symbols: List<Symbol>,
 ) : ExchangeInformationResponse
 
-object ExchangeInformationSerializer : JsonContentPolymorphicSerializer<ExchangeInformationResponse>(ExchangeInformationResponse::class) {
+object ExchangeInformationSerializer :
+    JsonContentPolymorphicSerializer<ExchangeInformationResponse>(ExchangeInformationResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -192,7 +197,7 @@ object ExchangeInformationSerializer : JsonContentPolymorphicSerializer<Exchange
         }
 }
 
-suspend fun SpotClient.getExchangeInformation(symbol: String) =
+suspend fun Client.getExchangeInformation(symbol: String) =
     client
         .get(configuration.baseUrl) {
             url {
@@ -209,13 +214,14 @@ suspend fun SpotClient.getExchangeInformation(symbol: String) =
             }
         }
 
-class GetExchangeInformation : CliktCommand() {
+class GetExchangeInformation :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
 
     override fun run() =
         runBlocking {
-            val cli = currentContext.findObject<Application>()?.cli!!
-
-            cli.getExchangeInformation(symbol).let(::println)
+            client.getExchangeInformation(symbol).let(::println)
         }
 }

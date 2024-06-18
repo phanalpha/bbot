@@ -4,91 +4,77 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
+import dev.alonfalsing.common.EndpointConfiguration
+import dev.alonfalsing.spot.CancelOrder
+import dev.alonfalsing.spot.Client
+import dev.alonfalsing.spot.CollectTrades
+import dev.alonfalsing.spot.CollectUserData
+import dev.alonfalsing.spot.GetAccount
+import dev.alonfalsing.spot.GetExchangeInformation
+import dev.alonfalsing.spot.GetOrder
+import dev.alonfalsing.spot.GetTrades
+import dev.alonfalsing.spot.NewOrder
+import dev.alonfalsing.spot.NewUserDataStream
+import dev.alonfalsing.spot.StartGrid
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.websocket.WebSockets
-import io.ktor.http.ParametersBuilder
-import io.ktor.http.formUrlEncode
 import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
-import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
-import org.kotlincrypto.macs.hmac.sha2.HmacSHA256
-
-data class SpotConfiguration(
-    val apiKey: String,
-    val apiSecret: String,
-    val baseUrl: String,
-    val websocketUrl: String,
-)
-
-data class BinanceConfiguration(
-    val spot: SpotConfiguration,
-)
-
-fun ParametersBuilder.appendTimestamp() =
-    append(
-        "timestamp",
-        Clock.System
-            .now()
-            .toEpochMilliseconds()
-            .toString(),
-    )
-
-@OptIn(ExperimentalStdlibApi::class)
-fun ParametersBuilder.appendSignature(apiSecret: String) =
-    HmacSHA256(apiSecret.toByteArray()).let {
-        it.update(build().formUrlEncode().toByteArray())
-        append("signature", it.doFinal().toHexString())
-    }
+import org.koin.core.context.startKoin
+import org.koin.dsl.module
 
 data class ApplicationConfiguration(
     val binance: BinanceConfiguration,
 )
 
+data class BinanceConfiguration(
+    val spot: EndpointConfiguration,
+    val future: EndpointConfiguration,
+)
+
 class Application : CliktCommand() {
-    private lateinit var _configuration: ApplicationConfiguration
-    private lateinit var _client: HttpClient
-    private lateinit var _cli: SpotClient
-
     override fun run() {
-        _configuration =
-            ConfigLoaderBuilder
-                .default()
-                .addResourceSource("/application.override.yaml", true)
-                .addResourceSource("/application.yaml")
-                .strict()
-                .build()
-                .loadConfigOrThrow<ApplicationConfiguration>()
-
-        _client =
-            HttpClient(CIO) {
-                install(ContentNegotiation) {
-                    json(
-                        Json {
-                            ignoreUnknownKeys = true
-                        },
-                    )
-                }
-                install(WebSockets) {
-                    contentConverter =
-                        KotlinxWebsocketSerializationConverter(
-                            Json {
-                                ignoreUnknownKeys = true
-                            },
-                        )
-                }
-            }
-
-        _cli = SpotClient(_client, _configuration.binance.spot)
-
-        currentContext.obj = this
+        startKoin {
+            modules(
+                module {
+                    single {
+                        ConfigLoaderBuilder
+                            .default()
+                            .addResourceSource("/application.override.yaml", true)
+                            .addResourceSource("/application.yaml")
+                            .strict()
+                            .build()
+                            .loadConfigOrThrow<ApplicationConfiguration>()
+                    }
+                    single {
+                        HttpClient(CIO) {
+                            install(ContentNegotiation) {
+                                json(
+                                    Json {
+                                        ignoreUnknownKeys = true
+                                    },
+                                )
+                            }
+                            install(WebSockets) {
+                                contentConverter =
+                                    KotlinxWebsocketSerializationConverter(
+                                        Json {
+                                            ignoreUnknownKeys = true
+                                        },
+                                    )
+                            }
+                        }
+                    }
+                    single {
+                        Client(get(), get<ApplicationConfiguration>().binance.spot)
+                    }
+                },
+            )
+        }
     }
-
-    val configuration get() = _configuration
-    val client get() = _client
-    val cli get() = _cli
 }
 
 fun main(args: Array<String>) =

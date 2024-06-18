@@ -1,16 +1,20 @@
-package dev.alonfalsing
+package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
-import com.github.ajalt.clikt.parameters.options.option
+import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.InstantEpochMillisecondsSerializer
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.wss
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Instant
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @OptIn(ExperimentalSerializationApi::class)
@@ -49,19 +53,23 @@ data class TradeEvent(
     val isBuyerMaker: Boolean,
 ) : MarketEvent
 
-class CollectTrades : CliktCommand() {
-    private val baseUrl by option()
+fun Client.collectTrades(symbol: String) =
+    flow {
+        client.wss("${configuration.websocketUrl}/ws/$symbol@trade") {
+            while (true) {
+                emit(receiveDeserialized<MarketEvent>())
+            }
+        }
+    }
+
+class CollectTrades :
+    CliktCommand(),
+    KoinComponent {
+    private val client by inject<Client>()
     private val symbol by argument()
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
-
-            application.client
-                .wss("${baseUrl ?: application.configuration.binance.websocketUrl}/ws/$symbol@trade") {
-                    while (true) {
-                        println(receiveDeserialized<MarketEvent>())
-                    }
-                }
+            client.collectTrades(symbol).collect(::println)
         }
 }
