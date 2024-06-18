@@ -3,7 +3,7 @@ package dev.alonfalsing.spot
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
-import dev.alonfalsing.BigDecimalSerializer
+import dev.alonfalsing.common.BigDecimalSerializer
 import dev.alonfalsing.common.appendSignature
 import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body

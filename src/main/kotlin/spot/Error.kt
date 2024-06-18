@@ -12,9 +12,8 @@ data class Error(
     OrderResponseAck,
     OrderResponseResult,
     OrderResponseFull,
-    CancelOrderResponse,
     OrderResponse,
     OrderArrayResponse,
+    CancelOrderResponse,
     TradeArrayResponse,
-    NewUserDataStreamResponse,
-    ExchangeInformationResponse
+    NewUserDataStreamResponse

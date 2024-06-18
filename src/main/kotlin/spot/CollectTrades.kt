@@ -2,8 +2,8 @@ package dev.alonfalsing.spot
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
-import dev.alonfalsing.BigDecimalSerializer
-import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.BigDecimalSerializer
+import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.wss
 import kotlinx.coroutines.flow.flow

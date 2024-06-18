@@ -5,8 +5,8 @@ import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.int
 import com.github.ajalt.clikt.parameters.types.long
-import dev.alonfalsing.BigDecimalSerializer
-import dev.alonfalsing.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.BigDecimalSerializer
+import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
 import dev.alonfalsing.common.appendSignature
 import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body

@@ -1,4 +1,4 @@
-package dev.alonfalsing.spot
+package dev.alonfalsing.future
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
@@ -16,7 +16,7 @@ suspend fun Client.getExchangeInformation(symbol: String) =
     client
         .get(configuration.baseUrl) {
             url {
-                path("/api/v3/exchangeInfo")
+                path("/fapi/v3/exchangeInfo")
                 parameters.apply {
                     append("symbol", symbol)
                 }

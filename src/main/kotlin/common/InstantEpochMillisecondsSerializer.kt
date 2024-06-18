@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.common
 
 import kotlinx.datetime.Instant
 import kotlinx.serialization.KSerializer

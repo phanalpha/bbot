@@ -1,4 +1,4 @@
-package dev.alonfalsing
+package dev.alonfalsing.common
 
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.descriptors.PrimitiveKind

@@ -5,17 +5,6 @@ import com.github.ajalt.clikt.core.subcommands
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addResourceSource
 import dev.alonfalsing.common.EndpointConfiguration
-import dev.alonfalsing.spot.CancelOrder
-import dev.alonfalsing.spot.Client
-import dev.alonfalsing.spot.CollectTrades
-import dev.alonfalsing.spot.CollectUserData
-import dev.alonfalsing.spot.GetAccount
-import dev.alonfalsing.spot.GetExchangeInformation
-import dev.alonfalsing.spot.GetOrder
-import dev.alonfalsing.spot.GetTrades
-import dev.alonfalsing.spot.NewOrder
-import dev.alonfalsing.spot.NewUserDataStream
-import dev.alonfalsing.spot.StartGrid
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
@@ -25,6 +14,10 @@ import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
 import org.koin.dsl.module
+import dev.alonfalsing.future.Client as FutureClient
+import dev.alonfalsing.future.MainCommand as FutureCommand
+import dev.alonfalsing.spot.Client as SpotClient
+import dev.alonfalsing.spot.MainCommand as SpotCommand
 
 data class ApplicationConfiguration(
     val binance: BinanceConfiguration,
@@ -36,6 +29,13 @@ data class BinanceConfiguration(
 )
 
 class Application : CliktCommand() {
+    init {
+        subcommands(
+            SpotCommand(),
+            FutureCommand(),
+        )
+    }
+
     override fun run() {
         startKoin {
             modules(
@@ -69,7 +69,10 @@ class Application : CliktCommand() {
                         }
                     }
                     single {
-                        Client(get(), get<ApplicationConfiguration>().binance.spot)
+                        SpotClient(get(), get<ApplicationConfiguration>().binance.spot)
+                    }
+                    single {
+                        FutureClient(get(), get<ApplicationConfiguration>().binance.future)
                     }
                 },
             )
@@ -77,16 +80,4 @@ class Application : CliktCommand() {
     }
 }
 
-fun main(args: Array<String>) =
-    Application()
-        .subcommands(GetAccount())
-        .subcommands(NewOrder())
-        .subcommands(GetOrder())
-        .subcommands(CancelOrder())
-        .subcommands(CollectTrades())
-        .subcommands(NewUserDataStream())
-        .subcommands(CollectUserData())
-        .subcommands(StartGrid())
-        .subcommands(GetTrades())
-        .subcommands(GetExchangeInformation())
-        .main(args)
+fun main(args: Array<String>) = Application().main(args)
