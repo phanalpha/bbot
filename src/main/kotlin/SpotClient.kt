@@ -2,7 +2,7 @@ package dev.alonfalsing
 
 import io.ktor.client.HttpClient
 
-class Client(
+class SpotClient(
     val client: HttpClient,
-    val configuration: BinanceConfiguration,
+    val configuration: SpotConfiguration,
 )

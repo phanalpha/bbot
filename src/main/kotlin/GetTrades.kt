@@ -79,7 +79,7 @@ object TradeArrayResponseSerializer : JsonContentPolymorphicSerializer<TradeArra
         }
 }
 
-suspend fun Client.getTrades(
+suspend fun SpotClient.getTrades(
     symbol: String,
     orderId: Long? = null,
     fromId: Long? = null,

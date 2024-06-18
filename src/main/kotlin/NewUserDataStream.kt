@@ -31,7 +31,7 @@ object NewUserDataStreamResponseSerializer : JsonContentPolymorphicSerializer<Ne
         }
 }
 
-suspend fun Client.newUserDataStream() =
+suspend fun SpotClient.newUserDataStream() =
     client
         .post(configuration.baseUrl) {
             url {
@@ -42,7 +42,7 @@ suspend fun Client.newUserDataStream() =
             }
         }.body<NewUserDataStreamResponse>()
 
-suspend fun Client.keepUserDataStream(listenKey: String) =
+suspend fun SpotClient.keepUserDataStream(listenKey: String) =
     client
         .put(configuration.baseUrl) {
             url {
@@ -56,7 +56,7 @@ suspend fun Client.keepUserDataStream(listenKey: String) =
             }
         }.body<Error>()
 
-suspend fun Client.closeUserDataStream(listenKey: String) =
+suspend fun SpotClient.closeUserDataStream(listenKey: String) =
     client
         .delete(configuration.baseUrl) {
             url {

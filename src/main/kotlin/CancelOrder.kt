@@ -57,7 +57,7 @@ object CancelOrderResponseSerializer : JsonContentPolymorphicSerializer<CancelOr
         }
 }
 
-suspend fun Client.cancelOrder(
+suspend fun SpotClient.cancelOrder(
     symbol: String,
     orderId: Long? = null,
     clientOrderId: String? = null,

@@ -44,26 +44,28 @@ object AccountResponseSerializer : JsonContentPolymorphicSerializer<AccountRespo
         }
 }
 
+suspend fun SpotClient.getAccount() =
+    client
+        .get(configuration.baseUrl) {
+            url {
+                path("/api/v3/account")
+                parameters.apply {
+                    append("omitZeroBalances", "true")
+
+                    appendTimestamp()
+                    appendSignature(configuration.apiSecret)
+                }
+            }
+            headers {
+                append("X-MBX-APIKEY", configuration.apiKey)
+            }
+        }.body<AccountResponse>()
+
 class GetAccount : CliktCommand() {
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
+            val cli = currentContext.findObject<Application>()!!.cli
 
-            application.client
-                .get(application.configuration.binance.baseUrl) {
-                    url {
-                        path("/api/v3/account")
-                        parameters.apply {
-                            append("omitZeroBalances", "true")
-
-                            appendTimestamp()
-                            appendSignature(application.configuration.binance.apiSecret)
-                        }
-                    }
-                    headers {
-                        append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                    }
-                }.body<AccountResponse>()
-                .let(::println)
+            cli.getAccount().let(::println)
         }
 }

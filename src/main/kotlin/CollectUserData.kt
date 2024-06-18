@@ -125,7 +125,8 @@ data class ExecutionReportEvent(
     val quoteOrderQuantity: BigDecimal,
     @SerialName("V")
     val selfTradePreventionMode: SelfTradePreventionMode,
-) : UserDataEvent
+) : UserDataEvent,
+    GridMessage
 
 @Serializable
 data class OrderId(
@@ -173,7 +174,7 @@ data class ListenKeyExpiredEvent(
     val listenKey: String,
 ) : UserDataEvent
 
-suspend fun Client.collectUserData(
+suspend fun SpotClient.collectUserData(
     listenKey: String,
     initialBlock: suspend () -> Unit = {},
     block: suspend (UserDataEvent) -> Unit,

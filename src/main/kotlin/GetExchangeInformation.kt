@@ -192,7 +192,7 @@ object ExchangeInformationSerializer : JsonContentPolymorphicSerializer<Exchange
         }
 }
 
-suspend fun Client.getExchangeInformation(symbol: String) =
+suspend fun SpotClient.getExchangeInformation(symbol: String) =
     client
         .get(configuration.baseUrl) {
             url {

@@ -107,6 +107,45 @@ object OrderArrayResponseSerializer : JsonContentPolymorphicSerializer<OrderArra
         }
 }
 
+suspend fun SpotClient.getOrder(
+    symbol: String,
+    orderId: Long?,
+    clientOrderId: String?,
+) = client
+    .get(configuration.baseUrl) {
+        url {
+            path("/api/v3/order")
+            parameters.apply {
+                append("symbol", symbol)
+                orderId?.let { append("orderId", it.toString()) }
+                clientOrderId?.let { append("origClientOrderId", it) }
+
+                appendTimestamp()
+                appendSignature(configuration.apiSecret)
+            }
+        }
+        headers {
+            append("X-MBX-APIKEY", configuration.apiKey)
+        }
+    }.body<OrderResponse>()
+
+suspend fun SpotClient.getOrders(symbol: String) =
+    client
+        .get(configuration.baseUrl) {
+            url {
+                path("/api/v3/openOrders")
+                parameters.apply {
+                    append("symbol", symbol)
+
+                    appendTimestamp()
+                    appendSignature(configuration.apiSecret)
+                }
+            }
+            headers {
+                append("X-MBX-APIKEY", configuration.apiKey)
+            }
+        }.body<OrderArrayResponse>()
+
 class GetOrder : CliktCommand() {
     private val symbol by argument()
     private val orderId by option().long()
@@ -114,46 +153,14 @@ class GetOrder : CliktCommand() {
 
     override fun run() =
         runBlocking {
-            val application = currentContext.findObject<Application>()!!
+            val cli = currentContext.findObject<Application>()?.cli!!
 
             when {
-                orderId != null && clientOrderId != null ->
-                    application.client
-                        .get(application.configuration.binance.baseUrl) {
-                            url {
-                                path("/api/v3/order")
-                                parameters.apply {
-                                    append("symbol", symbol)
-                                    orderId?.let { append("orderId", it.toString()) }
-                                    clientOrderId?.let { append("origClientOrderId", it) }
-
-                                    appendTimestamp()
-                                    appendSignature(application.configuration.binance.apiSecret)
-                                }
-                            }
-                            headers {
-                                append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                            }
-                        }.body<OrderResponse>()
-                        .let(::println)
+                orderId != null || clientOrderId != null ->
+                    cli.getOrder(symbol, orderId, clientOrderId).let(::println)
 
                 else ->
-                    application.client
-                        .get(application.configuration.binance.baseUrl) {
-                            url {
-                                path("/api/v3/openOrders")
-                                parameters.apply {
-                                    append("symbol", symbol)
-
-                                    appendTimestamp()
-                                    appendSignature(application.configuration.binance.apiSecret)
-                                }
-                            }
-                            headers {
-                                append("X-MBX-APIKEY", application.configuration.binance.apiKey)
-                            }
-                        }.body<OrderArrayResponse>()
-                        .let(::println)
+                    cli.getOrders(symbol).let(::println)
             }
         }
 }

@@ -3,9 +3,12 @@ package dev.alonfalsing
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.datetime.Clock
+import kotlinx.datetime.Instant
 import java.math.BigDecimal
 import kotlin.time.Duration.Companion.minutes
 
@@ -27,6 +30,14 @@ class GridOrder(
     }
 }
 
+interface GridMessage {
+    val timestamp: Instant
+}
+
+data class BeginMessage(
+    override val timestamp: Instant,
+) : GridMessage
+
 class StartGrid : CliktCommand() {
     private val symbol by argument()
     private val initial by argument().convert { it.toBigDecimal() }
@@ -40,51 +51,71 @@ class StartGrid : CliktCommand() {
 
     override fun run() =
         runBlocking {
+            val ch = Channel<GridMessage>()
             val cli = currentContext.findObject<Application>()?.cli!!
             val si = cli.getExchangeInformation(symbol) as Symbol
             val (listenKey) = cli.newUserDataStream() as UserDataStream
 
-            launch {
-                while (true) {
-                    delay(30.minutes)
-                    cli.keepUserDataStream(listenKey)
-                }
-            }
-
-            try {
-                cli.collectUserData(listenKey, {
-                    cli.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
-                        println(it)
-                        openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
+            val stream =
+                launch {
+                    launch {
+                        while (true) {
+                            delay(30.minutes)
+                            cli.keepUserDataStream(listenKey)
+                        }
                     }
-                }) { event ->
-                    println(event)
 
-                    if (event is ExecutionReportEvent && event.orderId in openOrders) {
-                        when (event.status) {
-                            OrderStatus.CANCELED, OrderStatus.REJECTED, OrderStatus.EXPIRED ->
-                                openOrders.remove(event.orderId)
+                    cli.collectUserData(listenKey, {
+                        ch.send(BeginMessage(Clock.System.now()))
+                    }) {
+                        println(it)
 
-                            OrderStatus.PARTIALLY_FILLED ->
-                                openOrders[event.orderId]?.fill(event)
-
-                            OrderStatus.FILLED ->
-                                fill(openOrders.remove(event.orderId)?.fill(event)!!, cli, si)
-
-                            else -> Unit
+                        if (it is ExecutionReportEvent) {
+                            ch.send(it)
                         }
                     }
                 }
-            } finally {
-                for (orderId in openOrders.keys) {
-                    cli.cancelOrder(symbol, orderId).let(::println)
+
+            while (true) {
+                when (val event = ch.receive()) {
+                    is BeginMessage -> {
+                        cli.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
+                            println(it)
+                            openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
+                        }
+                    }
+
+                    is ExecutionReportEvent ->
+                        if (event.orderId in openOrders) {
+                            when (event.status) {
+                                OrderStatus.CANCELED, OrderStatus.REJECTED, OrderStatus.EXPIRED -> {
+                                    openOrders.remove(event.orderId)
+                                    if (openOrders.all { it.value.side != OrderSide.SELL }) break
+                                }
+
+                                OrderStatus.PARTIALLY_FILLED ->
+                                    openOrders[event.orderId]?.fill(event)
+
+                                OrderStatus.FILLED -> {
+                                    fill(openOrders.remove(event.orderId)?.fill(event)!!, cli, si)
+                                    if (openOrders.all { it.value.side != OrderSide.SELL }) break
+                                }
+
+                                else -> Unit
+                            }
+                        }
                 }
+            }
+
+            stream.cancel()
+            for (orderId in openOrders.keys) {
+                cli.cancelOrder(symbol, orderId).let(::println)
             }
         }
 
     private suspend fun fill(
         order: GridOrder,
-        cli: Client,
+        cli: SpotClient,
         si: Symbol,
     ) {
         val d = order.price * dropRatio
@@ -94,14 +125,15 @@ class StartGrid : CliktCommand() {
             OrderSide.SELL -> {
                 received += order.amount
                 println("$received (+${order.amount}) / $spent")
-                check(openOrders.count { it.value.side == OrderSide.SELL } > 0)
 
-                cli
-                    .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, price = p)
-                    .let {
-                        println(it)
-                        openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
-                    }
+                if (openOrders.any { it.value.side == OrderSide.SELL }) {
+                    cli
+                        .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, price = p)
+                        .let {
+                            println(it)
+                            openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
+                        }
+                }
             }
 
             OrderSide.BUY -> {

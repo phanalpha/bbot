@@ -16,11 +16,15 @@ import kotlinx.datetime.Clock
 import kotlinx.serialization.json.Json
 import org.kotlincrypto.macs.hmac.sha2.HmacSHA256
 
-data class BinanceConfiguration(
+data class SpotConfiguration(
     val apiKey: String,
     val apiSecret: String,
     val baseUrl: String,
     val websocketUrl: String,
+)
+
+data class BinanceConfiguration(
+    val spot: SpotConfiguration,
 )
 
 fun ParametersBuilder.appendTimestamp() =
@@ -46,7 +50,7 @@ data class ApplicationConfiguration(
 class Application : CliktCommand() {
     private lateinit var _configuration: ApplicationConfiguration
     private lateinit var _client: HttpClient
-    private lateinit var _cli: Client
+    private lateinit var _cli: SpotClient
 
     override fun run() {
         _configuration =
@@ -77,7 +81,7 @@ class Application : CliktCommand() {
                 }
             }
 
-        _cli = Client(_client, _configuration.binance)
+        _cli = SpotClient(_client, _configuration.binance.spot)
 
         currentContext.obj = this
     }

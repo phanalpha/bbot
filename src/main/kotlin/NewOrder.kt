@@ -137,7 +137,7 @@ object OrderResponseFullSerializer : JsonContentPolymorphicSerializer<OrderRespo
         }
 }
 
-suspend inline fun <reified T> Client.newOrder(
+suspend inline fun <reified T> SpotClient.newOrder(
     symbol: String,
     side: OrderSide,
     quantity: BigDecimal,
