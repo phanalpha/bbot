@@ -18,6 +18,9 @@ class MainCommand : CliktCommand(name = "future") {
             CollectTickers(),
             GetAccount(),
             NewOrder(),
+            GetOrder(),
+            CancelOrder(),
+            GetTrades(),
             NewUserDataStream(),
         )
     }

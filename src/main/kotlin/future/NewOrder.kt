@@ -36,10 +36,10 @@ import org.koin.core.component.inject
 import java.math.BigDecimal
 
 @Serializable(with = OrderResultResponseSerializer::class)
-sealed interface OrderResultResponse
+sealed interface OrderResponse
 
 @Serializable
-data class OrderResult(
+data class Order(
     val symbol: String,
     val orderId: Long,
     val clientOrderId: String,
@@ -57,13 +57,13 @@ data class OrderResult(
     val executedQuantity: BigDecimal,
     @Serializable(with = BigDecimalSerializer::class)
     @SerialName("cumQty")
-    val cumulateQuantity: BigDecimal,
+    val cumulateQuantity: BigDecimal? = null,
     @Serializable(with = BigDecimalSerializer::class)
     @SerialName("price")
     val price: BigDecimal,
     @Serializable(with = BigDecimalSerializer::class)
     @SerialName("avgPrice")
-    val averagePrice: BigDecimal,
+    val averagePrice: BigDecimal? = null,
     @Serializable(with = BigDecimalSerializer::class)
     val stopPrice: BigDecimal? = null,
     @Serializable(with = BigDecimalSerializer::class)
@@ -86,14 +86,14 @@ data class OrderResult(
     @Serializable(with = InstantEpochMillisecondsSerializer::class)
     @SerialName("updateTime")
     val updatedAt: Instant,
-) : OrderResultResponse
+) : OrderResponse
 
 object OrderResultResponseSerializer :
-    JsonContentPolymorphicSerializer<OrderResultResponse>(OrderResultResponse::class) {
+    JsonContentPolymorphicSerializer<OrderResponse>(OrderResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
-            else -> OrderResult.serializer()
+            else -> Order.serializer()
         }
 }
 
@@ -126,6 +126,7 @@ suspend fun Client.newOrder(
                     } else {
                         append("type", OrderType.LIMIT.name)
                         append("price", price.toPlainString())
+                        append("timeInForce", TimeInForce.GTC.name)
                     }
                     append("quantity", quantity.toPlainString())
                     append("newClientOrderId", newClientOrderId ?: NanoId.generate())
@@ -135,7 +136,7 @@ suspend fun Client.newOrder(
                 },
             ),
         )
-    }.body<OrderResultResponse>()
+    }.body<OrderResponse>()
 
 class NewOrder :
     CliktCommand(),

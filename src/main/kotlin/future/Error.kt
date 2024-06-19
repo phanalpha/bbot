@@ -9,4 +9,4 @@ data class Error(
     @SerialName("msg")
     val message: String = "",
 ) : AccountResponse,
-    OrderResultResponse
+    OrderResponse

@@ -184,6 +184,7 @@ suspend inline fun <reified T> Client.newOrder(
                         append("type", OrderType.LIMIT.name)
                         append("quantity", quantity.toPlainString())
                         append("price", price.toPlainString())
+                        append("timeInForce", TimeInForce.GTC.name)
                     }
                     append("newClientOrderId", clientOrderId ?: NanoId.generate())
                     append(

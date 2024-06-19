@@ -3,6 +3,7 @@ package dev.alonfalsing
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.subcommands
 import com.sksamuel.hoplite.ConfigLoaderBuilder
+import com.sksamuel.hoplite.ExperimentalHoplite
 import com.sksamuel.hoplite.addResourceSource
 import dev.alonfalsing.common.EndpointConfiguration
 import io.ktor.client.HttpClient
@@ -36,6 +37,7 @@ class Application : CliktCommand() {
         )
     }
 
+    @OptIn(ExperimentalHoplite::class)
     override fun run() {
         startKoin {
             modules(
@@ -45,6 +47,7 @@ class Application : CliktCommand() {
                             .default()
                             .addResourceSource("/application.override.yaml", true)
                             .addResourceSource("/application.yaml")
+                            .withExplicitSealedTypes()
                             .strict()
                             .build()
                             .loadConfigOrThrow<ApplicationConfiguration>()
