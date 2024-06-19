@@ -6,6 +6,10 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.long
 import dev.alonfalsing.common.BigDecimalSerializer
 import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.OrderSide
+import dev.alonfalsing.common.OrderStatus
+import dev.alonfalsing.common.SelfTradePreventionMode
+import dev.alonfalsing.common.TimeInForce
 import dev.alonfalsing.common.appendSignature
 import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body

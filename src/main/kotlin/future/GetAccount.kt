@@ -25,12 +25,6 @@ import java.math.BigDecimal
 @Serializable(with = AccountResponseSerializer::class)
 sealed interface AccountResponse
 
-enum class PositionSide {
-    LONG,
-    SHORT,
-    BOTH,
-}
-
 @Serializable
 data class Balance(
     val asset: String,

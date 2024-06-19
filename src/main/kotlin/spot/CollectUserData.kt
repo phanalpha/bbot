@@ -4,6 +4,10 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import dev.alonfalsing.common.BigDecimalSerializer
 import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.OrderSide
+import dev.alonfalsing.common.OrderStatus
+import dev.alonfalsing.common.SelfTradePreventionMode
+import dev.alonfalsing.common.TimeInForce
 import io.ktor.client.plugins.websocket.receiveDeserialized
 import io.ktor.client.plugins.websocket.wss
 import kotlinx.coroutines.runBlocking

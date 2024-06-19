@@ -9,9 +9,9 @@ data class Error(
     @SerialName("msg")
     val message: String = "",
 ) : AccountResponse,
-    OrderResponseAck,
-    OrderResponseResult,
-    OrderResponseFull,
+    OrderAckResponse,
+    OrderResultResponse,
+    OrderFullResponse,
     OrderResponse,
     OrderArrayResponse,
     CancelOrderResponse,

@@ -3,12 +3,19 @@ package dev.alonfalsing.spot
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
+import com.github.ajalt.clikt.parameters.arguments.optional
 import com.github.ajalt.clikt.parameters.options.convert
 import com.github.ajalt.clikt.parameters.options.default
 import com.github.ajalt.clikt.parameters.options.flag
 import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.choice
 import dev.alonfalsing.common.BigDecimalSerializer
 import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
+import dev.alonfalsing.common.OrderResponseType
+import dev.alonfalsing.common.OrderSide
+import dev.alonfalsing.common.OrderStatus
+import dev.alonfalsing.common.SelfTradePreventionMode
+import dev.alonfalsing.common.TimeInForce
 import dev.alonfalsing.common.appendSignature
 import dev.alonfalsing.common.appendTimestamp
 import io.ktor.client.call.body
@@ -30,8 +37,8 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.math.BigDecimal
 
-@Serializable(with = OrderResponseAckSerializer::class)
-sealed interface OrderResponseAck
+@Serializable(with = OrderAckResponseSerializer::class)
+sealed interface OrderAckResponse
 
 @Serializable
 data class OrderAck(
@@ -41,10 +48,10 @@ data class OrderAck(
     val clientOrderId: String,
     @Serializable(with = InstantEpochMillisecondsSerializer::class)
     val transactTime: Instant,
-) : OrderResponseAck
+) : OrderAckResponse
 
-object OrderResponseAckSerializer :
-    JsonContentPolymorphicSerializer<OrderResponseAck>(OrderResponseAck::class) {
+object OrderAckResponseSerializer :
+    JsonContentPolymorphicSerializer<OrderAckResponse>(OrderAckResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -52,8 +59,8 @@ object OrderResponseAckSerializer :
         }
 }
 
-@Serializable(with = OrderResponseResultSerializer::class)
-sealed interface OrderResponseResult
+@Serializable(with = OrderResultResponseSerializer::class)
+sealed interface OrderResultResponse
 
 @Serializable
 data class OrderResult(
@@ -79,10 +86,10 @@ data class OrderResult(
     @Serializable(with = InstantEpochMillisecondsSerializer::class)
     val workingTime: Instant,
     val selfTradePreventionMode: SelfTradePreventionMode,
-) : OrderResponseResult
+) : OrderResultResponse
 
-object OrderResponseResultSerializer :
-    JsonContentPolymorphicSerializer<OrderResponseResult>(OrderResponseResult::class) {
+object OrderResultResponseSerializer :
+    JsonContentPolymorphicSerializer<OrderResultResponse>(OrderResultResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -90,8 +97,8 @@ object OrderResponseResultSerializer :
         }
 }
 
-@Serializable(with = OrderResponseFullSerializer::class)
-sealed interface OrderResponseFull
+@Serializable(with = OrderFullResponseSerializer::class)
+sealed interface OrderFullResponse
 
 @Serializable
 data class Fill(
@@ -134,10 +141,10 @@ data class OrderFull(
     val workingTime: Instant,
     val selfTradePreventionMode: SelfTradePreventionMode,
     val fills: List<Fill>,
-) : OrderResponseFull
+) : OrderFullResponse
 
-object OrderResponseFullSerializer :
-    JsonContentPolymorphicSerializer<OrderResponseFull>(OrderResponseFull::class) {
+object OrderFullResponseSerializer :
+    JsonContentPolymorphicSerializer<OrderFullResponse>(OrderFullResponse::class) {
     override fun selectDeserializer(element: JsonElement) =
         when {
             "code" in element.jsonObject -> Error.serializer()
@@ -177,15 +184,14 @@ suspend inline fun <reified T> Client.newOrder(
                         append("type", OrderType.LIMIT.name)
                         append("quantity", quantity.toPlainString())
                         append("price", price.toPlainString())
-                        append("timeInForce", TimeInForce.GTC.name)
                     }
                     append("newClientOrderId", clientOrderId ?: NanoId.generate())
                     append(
                         "newOrderRespType",
                         when (T::class) {
-                            OrderResponseAck::class -> OrderResponseType.ACK
-                            OrderResponseResult::class -> OrderResponseType.RESULT
-                            OrderResponseFull::class -> OrderResponseType.FULL
+                            OrderAckResponse::class -> OrderResponseType.ACK
+                            OrderResultResponse::class -> OrderResponseType.RESULT
+                            OrderFullResponse::class -> OrderResponseType.FULL
                             else -> error("Unsupported type: ${T::class}")
                         }.name,
                     )
@@ -204,29 +210,30 @@ class NewOrder :
     private val symbol by argument()
     private val quantity by argument().convert { it.toBigDecimal() }
     private val quote by option().flag()
+    private val price by argument().convert { it.toBigDecimal() }.optional()
+    private val side by option("--sell").flag().convert { if (!it) OrderSide.BUY else OrderSide.SELL }
     private val clientOrderId by option()
-    private val price by option().convert { it.toBigDecimal() }
-    private val buy by option().flag()
-    private val rt by option().convert { OrderResponseType.valueOf(it) }.default(OrderResponseType.ACK)
+    private val responseType by option()
+        .choice(choices = OrderResponseType.entries.map { it.name }.toTypedArray())
+        .convert { OrderResponseType.valueOf(it) }
+        .default(OrderResponseType.ACK)
 
     override fun run() =
         runBlocking {
-            val side = if (buy) OrderSide.BUY else OrderSide.SELL
-
-            when (rt) {
+            when (responseType) {
                 OrderResponseType.ACK ->
                     client
-                        .newOrder<OrderResponseAck>(symbol, side, quantity, quote, price, clientOrderId)
+                        .newOrder<OrderAckResponse>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.RESULT ->
                     client
-                        .newOrder<OrderResponseResult>(symbol, side, quantity, quote, price, clientOrderId)
+                        .newOrder<OrderResultResponse>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
 
                 OrderResponseType.FULL ->
                     client
-                        .newOrder<OrderResponseFull>(symbol, side, quantity, quote, price, clientOrderId)
+                        .newOrder<OrderFullResponse>(symbol, side, quantity, quote, price, clientOrderId)
                         .let(::println)
             }
         }

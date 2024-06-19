@@ -3,6 +3,8 @@ package dev.alonfalsing.spot
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.convert
+import dev.alonfalsing.common.OrderSide
+import dev.alonfalsing.common.OrderStatus
 import dev.alonfalsing.common.Symbol
 import dev.alonfalsing.common.UserDataStream
 import kotlinx.coroutines.channels.Channel
@@ -85,7 +87,7 @@ class StartGrid :
             while (true) {
                 when (val event = ch.receive()) {
                     is BeginMessage -> {
-                        client.newOrder<OrderResponseAck>(symbol, OrderSide.BUY, initial, quote = true).let {
+                        client.newOrder<OrderAckResponse>(symbol, OrderSide.BUY, initial, quote = true).let {
                             println(it)
                             openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
                         }
@@ -133,7 +135,7 @@ class StartGrid :
 
                 if (openOrders.any { it.value.side == OrderSide.SELL }) {
                     client
-                        .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, order.quantity, price = p)
+                        .newOrder<OrderAckResponse>(symbol, OrderSide.BUY, order.quantity, price = p)
                         .let {
                             println(it)
                             openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
@@ -146,7 +148,7 @@ class StartGrid :
                 println("$received / $spent (+${order.amount})")
 
                 client
-                    .newOrder<OrderResponseAck>(
+                    .newOrder<OrderAckResponse>(
                         symbol,
                         OrderSide.SELL,
                         order.quantity,
@@ -159,7 +161,7 @@ class StartGrid :
                 val q = si.filterQuantity(order.quantity * multiplier)
                 if (spent + p * q - received < budget) {
                     client
-                        .newOrder<OrderResponseAck>(symbol, OrderSide.BUY, q, price = p)
+                        .newOrder<OrderAckResponse>(symbol, OrderSide.BUY, q, price = p)
                         .let {
                             println(it)
                             openOrders[(it as OrderAck).orderId] = GridOrder(OrderSide.BUY)
