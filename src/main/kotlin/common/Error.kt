@@ -9,4 +9,6 @@ data class Error(
     @SerialName("msg")
     val message: String = "",
 ) : ExchangeInformationResponse,
-    NewUserDataStreamResponse
+    NewUserDataStreamResponse,
+    TickResponse,
+    TickArrayResponse

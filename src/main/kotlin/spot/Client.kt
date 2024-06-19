@@ -14,6 +14,8 @@ class MainCommand : CliktCommand(name = "spot") {
     init {
         subcommands(
             GetExchangeInformation(),
+            GetTick(),
+            CollectTickers(),
             GetAccount(),
             NewOrder(),
             GetOrder(),
