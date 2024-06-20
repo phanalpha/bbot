@@ -14,6 +14,7 @@ import io.ktor.serialization.kotlinx.KotlinxWebsocketSerializationConverter
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
 import org.koin.core.context.startKoin
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import dev.alonfalsing.future.Client as FutureClient
 import dev.alonfalsing.future.MainCommand as FutureCommand
@@ -52,6 +53,8 @@ class Application : CliktCommand() {
                             .build()
                             .loadConfigOrThrow<ApplicationConfiguration>()
                     }
+                    single(named("spot")) { get<ApplicationConfiguration>().binance.spot }
+                    single(named("future")) { get<ApplicationConfiguration>().binance.future }
                     single {
                         HttpClient(CIO) {
                             install(ContentNegotiation) {

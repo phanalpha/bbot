@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonClassDiscriminator
 import kotlinx.serialization.json.JsonContentPolymorphicSerializer
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNames
 import kotlinx.serialization.json.jsonObject
 import java.math.BigDecimal
 
@@ -33,7 +34,8 @@ data class PercentPriceFilter(
     val multiplierUp: BigDecimal,
     @Serializable(with = BigDecimalSerializer::class)
     val multiplierDown: BigDecimal,
-    val avgPriceMins: Int,
+    val avgPriceMins: Int? = null,
+    val multiplierDecimal: Int? = null,
 ) : SymbolFilter
 
 @Serializable
@@ -61,13 +63,15 @@ data class LotSizeFilter(
     val stepSize: BigDecimal,
 ) : SymbolFilter
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @SerialName("MIN_NOTIONAL")
 data class MinNotionalFilter(
     @Serializable(with = BigDecimalSerializer::class)
+    @JsonNames("notional")
     val minNotional: BigDecimal,
-    val applyToMarket: Boolean,
-    val avgPriceMins: Int,
+    val applyToMarket: Boolean? = null,
+    val avgPriceMins: Int? = null,
 ) : SymbolFilter
 
 @Serializable
@@ -99,15 +103,19 @@ data class MarketLotSizeFilter(
     val stepSize: BigDecimal,
 ) : SymbolFilter
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @SerialName("MAX_NUM_ORDERS")
 data class MaxNumOrdersFilter(
+    @JsonNames("limit")
     val maxNumOrders: Int,
 ) : SymbolFilter
 
+@OptIn(ExperimentalSerializationApi::class)
 @Serializable
 @SerialName("MAX_NUM_ALGO_ORDERS")
 data class MaxNumAlgoOrdersFilter(
+    @JsonNames("limit")
     val maxNumAlgoOrders: Int,
 ) : SymbolFilter
 
@@ -141,13 +149,13 @@ data class Symbol(
     val baseAssetPrecision: Int,
     val quoteAsset: String,
     val quotePrecision: Int,
-    val quoteAssetPrecision: Int,
+    val quoteAssetPrecision: Int? = null,
     val orderTypes: List<String>,
-    val icebergAllowed: Boolean,
-    val ocoAllowed: Boolean,
-    val quoteOrderQtyMarketAllowed: Boolean,
-    val isSpotTradingAllowed: Boolean,
-    val isMarginTradingAllowed: Boolean,
+    val icebergAllowed: Boolean? = null,
+    val ocoAllowed: Boolean? = null,
+    val quoteOrderQtyMarketAllowed: Boolean? = null,
+    val isSpotTradingAllowed: Boolean? = null,
+    val isMarginTradingAllowed: Boolean? = null,
     val filters: List<SymbolFilter>,
 ) {
     fun filterPrice(price: BigDecimal): BigDecimal =

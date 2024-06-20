@@ -20,3 +20,12 @@ enum class WorkingType {
     MARK_PRICE,
     CONTRACT_PRICE,
 }
+
+enum class ExecutionType {
+    NEW,
+    CANCELED,
+    CALCULATED,
+    EXPIRED,
+    TRADE,
+    AMENDMENT,
+}

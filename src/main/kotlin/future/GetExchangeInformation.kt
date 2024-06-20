@@ -2,6 +2,7 @@ package dev.alonfalsing.future
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
+import com.github.ajalt.clikt.parameters.arguments.optional
 import dev.alonfalsing.common.ExchangeInformation
 import dev.alonfalsing.common.ExchangeInformationResponse
 import io.ktor.client.call.body
@@ -10,33 +11,31 @@ import io.ktor.http.path
 import kotlinx.coroutines.runBlocking
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
-import dev.alonfalsing.common.Error as CommonError
 
-suspend fun Client.getExchangeInformation(symbol: String) =
+suspend fun Client.getExchangeInformation() =
     client
         .get(configuration.baseUrl) {
             url {
-                path("/fapi/v3/exchangeInfo")
-                parameters.apply {
-                    append("symbol", symbol)
-                }
+                path("/fapi/v1/exchangeInfo")
             }
         }.body<ExchangeInformationResponse>()
-        .let {
-            when (it) {
-                is CommonError -> it
-                is ExchangeInformation -> it.symbols.find { s -> s.symbol == symbol }!!
-            }
-        }
 
 class GetExchangeInformation :
     CliktCommand(),
     KoinComponent {
     private val client by inject<Client>()
-    private val symbol by argument()
+    private val symbol by argument().optional()
 
     override fun run() =
         runBlocking {
-            client.getExchangeInformation(symbol).let(::println)
+            client
+                .getExchangeInformation()
+                .let {
+                    if (it is ExchangeInformation && symbol != null) {
+                        it.symbols.find { si -> si.symbol == symbol }
+                    } else {
+                        it
+                    }
+                }.let(::println)
         }
 }

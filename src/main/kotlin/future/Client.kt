@@ -22,6 +22,8 @@ class MainCommand : CliktCommand(name = "future") {
             CancelOrder(),
             GetTrades(),
             NewUserDataStream(),
+            CollectUserData(),
+            StartCopy(),
         )
     }
 
