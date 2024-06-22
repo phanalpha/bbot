@@ -2,8 +2,8 @@ binance:
   spot:
     apiKey:
     apiSecret:
-    baseUrl:
-    websocketUrl:
+    baseUrl: https://api.binance.com
+    websocketUrl: wss://stream.binance.com
   future:
     apiKey:
     apiSecret:
