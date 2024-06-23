@@ -1,11 +1,28 @@
-binance:
+production:
   spot:
-    apiKey:
-    apiSecret:
     baseUrl: https://api.binance.com
     websocketUrl: wss://stream.binance.com
   future:
-    apiKey:
-    apiSecret:
-    baseUrl:
-    websocketUrl:
+    baseUrl: https://fapi.binance.com
+    websocketUrl: wss://fstream.binance.com
+
+test:
+  spot:
+    baseUrl: https://testnet.binance.vision
+    websocketUrl: wss://stream.testnet.binance.vision
+  future:
+    baseUrl: https://testnet.binancefuture.com
+    websocketUrl: wss://fstream.binancefuture.com
+
+credentials:
+  default:
+    production:
+      apiKey:
+      apiSecret:
+    test:
+      spot:
+        apiKey:
+        apiSecret:
+      future:
+        apiKey:
+        apiSecret:

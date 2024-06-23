@@ -93,11 +93,11 @@ suspend fun Client.getTrades(
                 limit?.let { append("limit", it.toString()) }
 
                 appendTimestamp()
-                appendSignature(configuration)
+                appendSignature(credentials)
             }
         }
         headers {
-            append("X-MBX-APIKEY", configuration.apiKey)
+            append("X-MBX-APIKEY", credentials.apiKey)
         }
     }.body<TradeArray>()
 

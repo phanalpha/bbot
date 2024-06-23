@@ -133,11 +133,11 @@ suspend fun Client.getOrder(
                 clientOrderId?.let { append("origClientOrderId", it) }
 
                 appendTimestamp()
-                appendSignature(configuration)
+                appendSignature(credentials)
             }
         }
         headers {
-            append("X-MBX-APIKEY", configuration.apiKey)
+            append("X-MBX-APIKEY", credentials.apiKey)
         }
     }.body<OrderResponse>()
 
@@ -150,11 +150,11 @@ suspend fun Client.getOrders(symbol: String) =
                     append("symbol", symbol)
 
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<OrderArrayResponse>()
 

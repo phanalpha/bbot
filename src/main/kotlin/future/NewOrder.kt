@@ -110,7 +110,7 @@ suspend fun Client.newOrder(
             path("/fapi/v1/order")
         }
         headers {
-            append("X-MBX-APIKEY", configuration.apiKey)
+            append("X-MBX-APIKEY", credentials.apiKey)
         }
 
         setBody(
@@ -132,7 +132,7 @@ suspend fun Client.newOrder(
                     append("newClientOrderId", newClientOrderId ?: NanoId.generate())
 
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 },
             ),
         )

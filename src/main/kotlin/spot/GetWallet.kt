@@ -81,11 +81,11 @@ suspend fun Client.getWallet() =
                 path("/sapi/v1/asset/wallet/balance")
                 parameters.apply {
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<WalletResponse>()
 

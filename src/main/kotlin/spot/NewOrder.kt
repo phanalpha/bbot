@@ -165,7 +165,7 @@ suspend inline fun <reified T> Client.newOrder(
             path("/api/v3/order")
         }
         headers {
-            append("X-MBX-APIKEY", configuration.apiKey)
+            append("X-MBX-APIKEY", credentials.apiKey)
         }
 
         setBody(
@@ -198,7 +198,7 @@ suspend inline fun <reified T> Client.newOrder(
                     )
 
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 },
             ),
         )

@@ -3,6 +3,8 @@ package dev.alonfalsing.future
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.arguments.argument
 import com.github.ajalt.clikt.parameters.arguments.optional
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
 import dev.alonfalsing.common.BigDecimalSerializer
 import dev.alonfalsing.common.InstantEpochMillisecondsSerializer
 import dev.alonfalsing.common.appendSignature
@@ -140,11 +142,11 @@ suspend fun Client.getAccount() =
                     append("omitZeroBalances", "true")
 
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<AccountResponse>()
 
@@ -153,18 +155,25 @@ class GetAccount :
     KoinComponent {
     private val client by inject<Client>()
     private val symbol by argument().optional()
+    private val summary by option().flag()
 
     override fun run() =
         runBlocking {
             client
                 .getAccount()
                 .let {
-                    if (it is Account && symbol != null) {
-                        it.assets.find { balance -> balance.asset == symbol }
-                            ?: it.positions.find { position -> position.symbol == symbol }
-                    } else {
-                        it
+                    if (it is Account) {
+                        if (symbol != null) {
+                            return@let it.assets.find { balance -> balance.asset == symbol }
+                                ?: it.positions.find { position -> position.symbol == symbol }
+                        }
+
+                        if (summary) {
+                            return@let it.copy(assets = emptyList(), positions = emptyList())
+                        }
                     }
+
+                    return@let it
                 }.let(::println)
         }
 }

@@ -82,11 +82,11 @@ suspend fun Client.cancelOrder(
                 clientOrderId?.let { append("origClientOrderId", it) }
 
                 appendTimestamp()
-                appendSignature(configuration)
+                appendSignature(credentials)
             }
         }
         headers {
-            append("X-MBX-APIKEY", configuration.apiKey)
+            append("X-MBX-APIKEY", credentials.apiKey)
         }
     }.body<CancelOrderResponse>()
 

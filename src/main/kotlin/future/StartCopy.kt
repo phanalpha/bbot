@@ -6,6 +6,7 @@ import com.github.ajalt.clikt.parameters.arguments.convert
 import com.github.ajalt.clikt.parameters.arguments.default
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
+import dev.alonfalsing.common.Credentials
 import dev.alonfalsing.common.EndpointConfiguration
 import dev.alonfalsing.common.ExchangeInformation
 import dev.alonfalsing.common.OrderStatus
@@ -32,14 +33,7 @@ class StartCopy :
 
     override fun run() =
         runBlocking {
-            val master =
-                Client(
-                    httpClient,
-                    configuration.copy(
-                        apiKey = masterKey,
-                        apiSecret = masterSecret,
-                    ),
-                )
+            val master = Client(httpClient, configuration, Credentials(masterKey, masterSecret))
             val symbols = (client.getExchangeInformation() as ExchangeInformation).symbols
             val (listenKey) = master.newUserDataStream() as UserDataStream
 

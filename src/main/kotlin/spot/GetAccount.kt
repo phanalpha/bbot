@@ -61,11 +61,11 @@ suspend fun Client.getAccount() =
                     append("omitZeroBalances", "true")
 
                     appendTimestamp()
-                    appendSignature(configuration)
+                    appendSignature(credentials)
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<AccountResponse>()
 

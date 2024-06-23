@@ -21,7 +21,7 @@ suspend fun Client.newUserDataStream() =
                 path("/api/v3/userDataStream")
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<NewUserDataStreamResponse>()
 
@@ -35,7 +35,7 @@ suspend fun Client.keepUserDataStream(listenKey: String) =
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<Error>()
 
@@ -49,7 +49,7 @@ suspend fun Client.closeUserDataStream(listenKey: String) =
                 }
             }
             headers {
-                append("X-MBX-APIKEY", configuration.apiKey)
+                append("X-MBX-APIKEY", credentials.apiKey)
             }
         }.body<Error>()
 

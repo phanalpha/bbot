@@ -15,8 +15,8 @@ fun ParametersBuilder.appendTimestamp() =
     )
 
 @OptIn(ExperimentalStdlibApi::class)
-fun ParametersBuilder.appendSignature(configuration: EndpointConfiguration) =
-    HmacSHA256(configuration.apiSecret.toByteArray()).let {
+fun ParametersBuilder.appendSignature(credentials: Credentials) =
+    HmacSHA256(credentials.apiSecret.toByteArray()).let {
         it.update(build().formUrlEncode().toByteArray())
         append("signature", it.doFinal().toHexString())
     }
