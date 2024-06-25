@@ -17,6 +17,7 @@ class MainCommand : CliktCommand(name = "future") {
         subcommands(
             GetExchangeInformation(),
             GetTick(),
+            CollectPrices(),
             CollectTickers(),
             GetAccount(),
             NewOrder(),
