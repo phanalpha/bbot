@@ -20,6 +20,7 @@ class MainCommand : CliktCommand(name = "spot") {
             CollectTickers(),
             GetAccount(),
             GetWallet(),
+            GetReferralIfNewUser(),
             NewOrder(),
             GetOrder(),
             CancelOrder(),

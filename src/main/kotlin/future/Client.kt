@@ -20,6 +20,8 @@ class MainCommand : CliktCommand(name = "future") {
             CollectPrices(),
             CollectTickers(),
             GetAccount(),
+            GetPositionMode(),
+            GetReferralIfNewUser(),
             NewOrder(),
             GetOrder(),
             CancelOrder(),
