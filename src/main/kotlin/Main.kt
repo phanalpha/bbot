@@ -11,6 +11,7 @@ import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.options.required
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.ExperimentalHoplite
+import com.sksamuel.hoplite.addFileSource
 import com.sksamuel.hoplite.addResourceSource
 import dev.alonfalsing.common.Credentials
 import dev.alonfalsing.common.EndpointConfiguration
@@ -106,22 +107,13 @@ class Application : CliktCommand() {
 
     @OptIn(ExperimentalHoplite::class)
     override fun run() {
-        ConfigLoaderBuilder
-            .default()
-            .addResourceSource("/application.override.yaml", true)
-            .addResourceSource("/application.yaml")
-            .withExplicitSealedTypes()
-            .strict()
-            .build()
-            .loadConfigOrThrow<ApplicationConfiguration>()
-
         startKoin {
             modules(
                 module {
                     single {
                         ConfigLoaderBuilder
                             .default()
-                            .addResourceSource("/application.override.yaml", true)
+                            .addFileSource("application.yaml", true)
                             .addResourceSource("/application.yaml")
                             .withExplicitSealedTypes()
                             .strict()
